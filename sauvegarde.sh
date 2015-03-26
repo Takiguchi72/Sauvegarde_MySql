@@ -20,7 +20,7 @@ ecrireLog()
 	else
 		#S'il y avait plus qu'un seul paramètre, on affiche un message d'erreur
 		if [ $# -ge 2 ]
-		then
+		then	
 			echo "La fonction a été appelé avec plus d'un paramètre !"
 			echo "Aucun log n'a été écrit !"
 		#Sinon, c'est qu'on a appelé la fonction avec un seul paramètre,
@@ -56,7 +56,18 @@ if [ $etatMySql = "stop" ]
 then
 	#On affiche que MySql est éteint
 	ecrireLog "Le service MySql est arrêté !"
-	ecrireLog "Impossible de réaliser la sauvegarde !"
+	ecrireLog "Impossible de réaliser la sauvegarde."
+	exit 1
+fi
+
+#Test de connexion à la base mysql
+bases=$(mysql -h localhost -u root -pp@ssword -e "show databases;" -B -s 2>> $fichierLog)
+#Si bases est vide, c'est qu'on a pas réussi à lister les bdd, donc qu'on a pas réussi à se connecter.
+#On affiche une erreur puis on arrête le script
+if [ -z bases ]
+then
+	ecrireLog "Impossible de se connecter à MySql !"
+	ecrireLog "Impossible de réaliser la sauvegarde."
 	exit 1
 fi
 
