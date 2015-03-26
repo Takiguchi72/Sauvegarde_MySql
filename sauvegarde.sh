@@ -47,6 +47,19 @@ dateLog=$(date +%d-%m-%Y:%H-%M-%S)
 echo " " >> $fichierLog
 echo $(date) >> $fichierLog
 
+#On vérifie que le service MySql tourne
+# => La commande retourne soit "start" (MySql allumé) soit "stop" (MySql éteint)
+etatMySql=$(service mysql status | cut -f2 -d " " | cut -f1 -d "/")
+
+#Si $etatMySql vaut "stop", c'est que le serveur MySql est éteint, donc on arrête le script
+if [ $etatMySql = "stop" ]
+then
+	#On affiche que MySql est éteint
+	ecrireLog "Le service MySql est arrêté !"
+	ecrireLog "Impossible de réaliser la sauvegarde !"
+	exit 1
+fi
+
 #Création du dossier /var/log/mysql
 #Si le dossier n'existe pas, je le créer
 if [ ! -d $pathLog ]
@@ -54,6 +67,7 @@ then
 	#Création du dossier et redirection du canal d'erreur vers le fichier de log
 	ecrireLog "Le dossier $pathLog n'existe pas. Création du dossier $pathLog..."
 	mkdir $pathLog 2>> $fichierLog
+
 	#Gestion du code retour de la création du dossier
 	#Si mkdir ne retourne pas '0', c'est qu'on a pas réussi à créer le dossier
 	if [ $? -ne 0 ]
@@ -78,12 +92,14 @@ then
 	#Création du dossier et redirection du canal d'erreur vers le fichier de log
 	ecrireLog "Le dossier $pathSave n'existe pas..."
 	mkdir $pathSave 2>> $fichierLog
+
 	#Gestion du code retour de la création du dossier
 	#Si mkdir ne retourne pas '0', c'est qu'on a pas réussi à créer le dossier
 	if [ $? -ne 0 ]
 	then
 		#On affiche un message d'erreur
 		ecrireLog "Echec de la création du dossier $pathSave !"
+
 		#Puis on retourne 1 car il y a eu un probleme
 		exit 1
 	else
@@ -97,8 +113,10 @@ fi
 
 #Sauvegarde de la base de données gsb_frais
 ecrireLog "Création de la sauvegarde de la base de données gsb_frais..."
+
 #On défini le chemin et le nom du fichier pour pouvoir le retrouver dans la suite du script pour le comprésser
 fichierSauvegarde="/var/sauvdb/gsb_frais$(date +%d%m%Y-%H%M%S).sql"
+
 #mysqldump -u usauv -pusauv -h localhost --opt gsb_frais > /var/sauvdb/gsb_frais$(date +%d%m%Y-%H%M%S).sql 2>> $fichierLog
 mysqldump -u usauv -pusauv -h localhost --opt gsb_frais > $fichierSauvegarde 2>> $fichierLog
 
@@ -109,19 +127,23 @@ then
 	#Si la sauvegarde a été effectuée correctement,
 	#on affiche un message
 	ecrireLog "Sauvegarde effectuée avec succès !"
+
 	#puis on compresse la sauvegarde avec gzip
 	ecrireLog "Compression de la sauvegarde..."
 	gzip $fichierSauvegarde
+
 	#Si gzip retourne '0'
 	if [ $? -eq 0 ]
 	then
 		#On affiche que tout s'est bien passé
 		ecrireLog "La sauvegarde a correctement été compréssée !"
+
 		#On retourne 0 car tout s'est bien passé
 		exit 0
 	else
 		#Sinon, on indique qu'il y a eu une erreur
 		ecrireLog "Echec de la compression de la sauvegarde !"
+
 		#On retourne 1 car il y a eu une erreur
 		exit 1
 	fi
@@ -129,6 +151,7 @@ then
 else
 	#On affiche un message d'erreur
 	ecrireLog "La sauvegarde de la base a échouée !"
+
 	#On retourne 1 car il y a eu une erreur
 	exit 1
 fi
